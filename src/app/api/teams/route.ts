@@ -4,7 +4,6 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import { checkOrigin } from "@/lib/admin-auth";
 import { connectToDatabase } from "@/lib/db";
-import { checkTeamRegistrationRateLimit } from "@/lib/rate-limit";
 import { getRoleForEmail, isAllowedDomain, normalizeEmail } from "@/lib/roles";
 import { getSettings } from "@/lib/settings";
 import { isRollNumberValidForYear, normalizeRollNumber, rollNumberPattern } from "@/lib/team-validation";
@@ -83,12 +82,6 @@ const registrationSchema = z
   })
   .strict();
 
-function getClientIdentifier(request: Request, email: string) {
-  const forwardedFor = request.headers.get("x-forwarded-for");
-  const ip = forwardedFor?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || "unknown";
-  return `${email}:${ip}`;
-}
-
 function invalidMemberEmail(email: string) {
   const normalized = normalizeEmail(email);
   const atIndex = normalized.lastIndexOf("@");
@@ -110,12 +103,6 @@ export async function POST(request: Request) {
     const role = await getRoleForEmail(leaderEmail);
     if (role !== "student") {
       return NextResponse.json({ error: "Only students who are not already on a team can register one." }, { status: 403 });
-    }
-
-    const rateLimit = await checkTeamRegistrationRateLimit(getClientIdentifier(request, leaderEmail));
-    if (!rateLimit.allowed) {
-      const error = rateLimit.reason === "limited" ? "Too many registration attempts. Please try again later." : "Registration is temporarily unavailable.";
-      return NextResponse.json({ error }, { status: rateLimit.reason === "limited" ? 429 : 503 });
     }
 
     const parsed = registrationSchema.safeParse(await request.json());
