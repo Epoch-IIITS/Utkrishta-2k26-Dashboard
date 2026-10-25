@@ -53,7 +53,6 @@ function getNavLinks(
   const links: NavLink[] = [
     { href: "/", label: "Home" },
     { href: "/rules", label: "Rules" },
-    { href: "/#contact", label: "Contact" },
   ];
 
   // The leaderboard is public once results are published.
@@ -200,6 +199,27 @@ function UserMenu({ role, userName }: Pick<TopNavProps, "role" | "userName">) {
           </div>
 
           <DropdownMenu.Separator className="my-1 h-px bg-border" />
+
+          {role === "admin" && (
+            <>
+              <DropdownMenu.Item asChild>
+                <Link className="flex min-h-10 items-center rounded-xl px-3 py-2 text-sm font-medium text-deep hover:bg-tint hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" href="/admin">
+                  Admin
+                </Link>
+              </DropdownMenu.Item>
+              <DropdownMenu.Item asChild>
+                <Link className="flex min-h-10 items-center rounded-xl px-3 py-2 text-sm font-medium text-deep hover:bg-tint hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" href="/admin/users">
+                  Admins
+                </Link>
+              </DropdownMenu.Item>
+              <DropdownMenu.Item asChild>
+                <Link className="flex min-h-10 items-center rounded-xl px-3 py-2 text-sm font-medium text-deep hover:bg-tint hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" href="/admin/settings">
+                  Settings
+                </Link>
+              </DropdownMenu.Item>
+              <DropdownMenu.Separator className="my-1 h-px bg-border" />
+            </>
+          )}
 
           {/* Use Auth.js's browser helper: Radix menu items do not reliably
               submit nested forms after they handle selection. */}

@@ -5,11 +5,7 @@ import authConfig from "@/auth.config";
 const { auth } = NextAuth(authConfig);
 
 export default auth((request) => {
-  const role = request.auth?.user?.role;
   if (!request.auth?.user) {
-    return NextResponse.redirect(new URL("/", request.url));
-  }
-  if (role !== "admin") {
     return NextResponse.redirect(new URL("/", request.url));
   }
   return NextResponse.next();
