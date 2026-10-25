@@ -61,26 +61,90 @@ export async function GET() {
   }
 }
 
-const personName = z.string().trim().min(2).max(60).regex(/^[A-Za-z .'-]+$/);
-const teamName = z.string().trim().min(3).max(40).refine((value) => !/[<>]/.test(value));
-const year = z.enum(["UG1", "UG2", "UG3", "UG4"]);
-const phone = z.string().trim().regex(/^\+?\d{10,15}$/);
-const rollNumber = z.string().trim().transform(normalizeRollNumber).refine((value) => rollNumberPattern.test(value));
-const branch = z.string().trim().min(1).max(100).regex(/^[A-Za-z .&()'-]+$/);
-const httpsUrl = z.string().trim().url().max(300).refine((value) => new URL(value).protocol === "https:");
-const memberSchema = z.object({ name: personName, email: z.string().trim().email().max(254), rollNumber, year, branch }).strict();
+// Each message completes a sentence that starts with the field label, for example
+// "Your roll number" + " " + "must be the letter S followed by 11 digits."
+const TEAM_NAME_MESSAGE = "must be 3–40 characters and cannot contain < or >.";
+const NAME_MESSAGE = "must be 2–60 characters and use only letters, spaces, . ' and -.";
+const BRANCH_MESSAGE = "must be 1–100 characters and use only letters, spaces, . & ( ) ' and -.";
+const EMAIL_MESSAGE = "must be a valid email address.";
+const ROLL_NUMBER_MESSAGE = "must be the letter S followed by 11 digits.";
+const PHONE_MESSAGE = "must be 10–15 digits, with an optional leading +.";
+const URL_MESSAGE = "must be a valid link starting with https://.";
+
+const personName = z.string().trim().min(2, NAME_MESSAGE).max(60, NAME_MESSAGE).regex(/^[A-Za-z .'-]+$/, NAME_MESSAGE);
+const teamName = z
+  .string()
+  .trim()
+  .min(3, TEAM_NAME_MESSAGE)
+  .max(40, TEAM_NAME_MESSAGE)
+  .refine((value) => !/[<>]/.test(value), TEAM_NAME_MESSAGE);
+const year = z.enum(["UG1", "UG2", "UG3", "UG4"], { message: "must be UG1, UG2, UG3 or UG4." });
+const phone = z.string().trim().regex(/^\+?\d{10,15}$/, PHONE_MESSAGE);
+const rollNumber = z
+  .string()
+  .trim()
+  .transform(normalizeRollNumber)
+  .refine((value) => rollNumberPattern.test(value), ROLL_NUMBER_MESSAGE);
+const branch = z.string().trim().min(1, BRANCH_MESSAGE).max(100, BRANCH_MESSAGE).regex(/^[A-Za-z .&()'-]+$/, BRANCH_MESSAGE);
+const memberEmail = z.string().trim().email(EMAIL_MESSAGE).max(254, EMAIL_MESSAGE);
+const httpsUrl = z
+  .string()
+  .trim()
+  .url(URL_MESSAGE)
+  .max(300, "must be 300 characters or fewer.")
+  .refine((value) => {
+    try {
+      return new URL(value).protocol === "https:";
+    } catch {
+      return false;
+    }
+  }, URL_MESSAGE);
+
+const memberSchema = z.object({ name: personName, email: memberEmail, rollNumber, year, branch }).strict();
 const registrationSchema = z
   .object({
     teamName,
-    institutionName: z.literal("IIIT Sri City"),
+    institutionName: z.literal("IIIT Sri City", { message: "must be IIIT Sri City." }),
     leader: z.object({ name: personName, phone, rollNumber, year, branch }).strict(),
-    members: z.array(memberSchema).length(TEAM_SIZE - 1),
-    rulesAccepted: z.literal(true),
-    previousHackathonExperience: z.enum(["none", "1-2", "3_or_more"]).optional(),
+    members: z.array(memberSchema).length(TEAM_SIZE - 1, `must be exactly ${TEAM_SIZE - 1}.`),
+    rulesAccepted: z.literal(true, { message: "must be accepted before you can register." }),
+    previousHackathonExperience: z.enum(["none", "1-2", "3_or_more"], { message: "must be one of the listed options." }).optional(),
     githubUrl: httpsUrl.optional(),
     linkedinUrl: httpsUrl.optional(),
   })
   .strict();
+
+const FIELD_LABELS: Record<string, string> = {
+  name: "name",
+  phone: "WhatsApp number",
+  rollNumber: "roll number",
+  year: "year",
+  branch: "branch",
+  email: "email",
+};
+
+// Turns a zod issue into a sentence a student can act on.
+function describeIssue(issue: z.ZodIssue): string {
+  if (issue.code === "unrecognized_keys") {
+    return "The form sent unexpected data. Please refresh the page and try again.";
+  }
+
+  const [root, second, third] = issue.path;
+  let label = "The registration details";
+  if (root === "teamName") label = "Team name";
+  else if (root === "institutionName") label = "Institution";
+  else if (root === "rulesAccepted") label = "The event rules";
+  else if (root === "githubUrl") label = "GitHub link";
+  else if (root === "linkedinUrl") label = "LinkedIn link";
+  else if (root === "previousHackathonExperience") label = "Previous hackathon experience";
+  else if (root === "leader") label = `Your ${FIELD_LABELS[String(second)] ?? "details"}`;
+  else if (root === "members") {
+    label = typeof second === "number" ? `Member ${second + 2} ${FIELD_LABELS[String(third)] ?? "details"}` : "Teammates";
+  }
+
+  if (issue.code === "invalid_type") return `${label} is missing or in the wrong format.`;
+  return `${label} ${issue.message}`;
+}
 
 function invalidMemberEmail(email: string) {
   const normalized = normalizeEmail(email);
@@ -107,11 +171,10 @@ export async function POST(request: Request) {
 
     const parsed = registrationSchema.safeParse(await request.json());
     if (!parsed.success) {
-      const issues = parsed.error.issues.map((issue) => ({ path: issue.path.join("."), message: issue.message }));
-      return NextResponse.json(
-        { error: `Enter a valid team name and details for all ${TEAM_SIZE} members.`, issues },
-        { status: 400 },
-      );
+      const issues = parsed.error.issues.map((issue) => ({ path: issue.path.join("."), message: describeIssue(issue) }));
+      const extra = issues.length - 1;
+      const error = extra > 0 ? `${issues[0].message} (${extra} more to fix.)` : issues[0].message;
+      return NextResponse.json({ error, issues }, { status: 400 });
     }
 
     const settings = await getSettings();
