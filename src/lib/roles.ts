@@ -1,9 +1,8 @@
-import { AdminAllowlist } from "@/models/AdminAllowlist";
-import { JudgeAllowlist } from "@/models/JudgeAllowlist";
-import { Setting } from "@/models/Setting";
 import { connectToDatabase } from "@/lib/db";
+import { AdminAllowlist } from "@/models/AdminAllowlist";
+import { Team } from "@/models/Team";
 
-export type AppRole = "super_admin" | "admin" | "judge" | "team_leader" | "student";
+export type AppRole = "admin" | "team_leader" | "student";
 
 export function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
@@ -16,39 +15,25 @@ export function isAllowedDomain(email: string) {
   return Boolean(domain && separator > 0 && normalizedEmail.slice(separator + 1) === domain);
 }
 
-export function getSuperAdminEmails() {
+// Admins listed in the ADMIN_EMAILS environment variable. They always have admin access,
+// so the site can never be locked out even if the allowlist is empty.
+export function getAdminEmails() {
   return (process.env.ADMIN_EMAILS ?? "").split(",").map(normalizeEmail).filter(Boolean);
 }
 
 export async function getRoleForEmail(email: string): Promise<AppRole> {
   const normalizedEmail = normalizeEmail(email);
-  if (getSuperAdminEmails().includes(normalizedEmail)) return "super_admin";
+  if (getAdminEmails().includes(normalizedEmail)) return "admin";
   await connectToDatabase();
 
-  const [admin, judge, leader] = await Promise.all([
+  const [admin, leader] = await Promise.all([
     AdminAllowlist.exists({ email: normalizedEmail }),
-    JudgeAllowlist.exists({ email: normalizedEmail }),
-    mongooseTeamLeaderExists(normalizedEmail),
+    Team.exists({ leaderEmail: normalizedEmail }),
   ]);
-  // Conflicting role-family records fail closed instead of granting whichever query wins.
-  const roles = [admin, judge, leader].filter(Boolean).length;
-  if (roles > 1) return "student";
+
+  // An email that is both an admin and a team leader fails closed instead of getting either role.
+  if (admin && leader) return "student";
   if (admin) return "admin";
-  if (judge) return "judge";
   if (leader) return "team_leader";
   return "student";
-}
-
-async function mongooseTeamLeaderExists(email: string) {
-  const mongoose = await import("mongoose");
-  const teamSchema = new mongoose.Schema({ leaderEmail: String }, { collection: "teams" });
-  const TeamLookup = mongoose.models.TeamRoleLookup ?? mongoose.model("TeamRoleLookup", teamSchema);
-  return TeamLookup.exists({ leaderEmail: email });
-}
-
-export async function isExternalJudgeAllowed(email: string) {
-  await connectToDatabase();
-  const setting = await Setting.findOne({}).select({ allowNonCollegeJudges: 1 }).lean<{ allowNonCollegeJudges?: boolean }>();
-  if (!setting?.allowNonCollegeJudges) return false;
-  return Boolean(await JudgeAllowlist.exists({ email: normalizeEmail(email) }));
 }

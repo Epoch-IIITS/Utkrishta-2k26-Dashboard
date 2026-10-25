@@ -21,7 +21,7 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
   if (!session?.user?.email) redirect("/");
   await connectToDatabase();
   const role = await getRoleForEmail(normalizeEmail(session.user.email));
-  if (role !== "admin" && role !== "super_admin") redirect("/");
+  if (role !== "admin") redirect("/");
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -30,13 +30,13 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <Link className="text-sm font-semibold uppercase tracking-[0.18em] text-primary" href="/admin">Utkrishta Admin</Link>
-              <p className="mt-1 text-sm text-slate-600">Signed in as {role === "super_admin" ? "super admin" : "admin"}</p>
+              <p className="mt-1 text-sm text-slate-600">Signed in as {role === "admin" ? "admin" : "admin"}</p>
             </div>
-            {role === "super_admin" && <Link className="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50" href="/admin/settings">Settings</Link>}
+            {role === "admin" && <Link className="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50" href="/admin/settings">Settings</Link>}
           </div>
           <nav aria-label="Admin pages" className="flex gap-2 overflow-x-auto pb-1">
             {pages
-              .filter(([href]) => href !== "/admin/users" || role === "super_admin")
+              .filter(([href]) => href !== "/admin/users" || role === "admin")
               .map(([href, label]) => (
                 <Link className="shrink-0 rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-tint hover:text-primary-hover focus:outline-none focus:ring-2 focus:ring-primary" href={href} key={href}>
                   {label}

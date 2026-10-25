@@ -1,5 +1,6 @@
 import type { NextAuthConfig } from "next-auth";
 import Google from "next-auth/providers/google";
+import type { AppRole } from "@/lib/roles";
 
 const authConfig = {
   providers: [Google],
@@ -9,7 +10,7 @@ const authConfig = {
     session({ session, token }) {
       if (session.user && typeof token.email === "string") {
         session.user.email = token.email;
-        session.user.role = typeof token.role === "string" ? (token.role as import("@/lib/roles").AppRole) : "student";
+        session.user.role = typeof token.role === "string" ? (token.role as AppRole) : "student";
       }
       return session;
     },

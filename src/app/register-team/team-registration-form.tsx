@@ -5,13 +5,17 @@ import { useState } from "react";
 type Year = "UG1" | "UG2" | "UG3" | "UG4";
 type Member = { name: string; email: string; rollNumber: string; year: Year; branch: string };
 type Leader = { name: string; phone: string; rollNumber: string; year: Year; branch: string };
-const emptyMember = (year: Year = "UG1"): Member => ({ name: "", email: "", rollNumber: "", year, branch: "" });
+
+const YEARS: Year[] = ["UG1", "UG2", "UG3", "UG4"];
+const INSTITUTION = "IIIT Sri City";
+const TEAMMATE_COUNT = 3;
+
+const emptyMember = (): Member => ({ name: "", email: "", rollNumber: "", year: "UG1", branch: "" });
 
 export function TeamRegistrationForm({ initialLeaderName, leaderEmail }: { initialLeaderName: string; leaderEmail: string }) {
   const [teamName, setTeamName] = useState("");
-  const [track, setTrack] = useState<"web_dev" | "ai_ml">("web_dev");
   const [leader, setLeader] = useState<Leader>({ name: initialLeaderName, phone: "", rollNumber: "", year: "UG1", branch: "" });
-  const [members, setMembers] = useState<Member[]>([emptyMember()]);
+  const [members, setMembers] = useState<Member[]>(() => Array.from({ length: TEAMMATE_COUNT }, emptyMember));
   const [rulesAccepted, setRulesAccepted] = useState(false);
   const [previousHackathonExperience, setPreviousHackathonExperience] = useState<"none" | "1-2" | "3_or_more">("none");
   const [githubUrl, setGithubUrl] = useState("");
@@ -22,17 +26,9 @@ export function TeamRegistrationForm({ initialLeaderName, leaderEmail }: { initi
   function updateMember(index: number, field: keyof Member, value: string) {
     setMembers((current) => current.map((member, i) => (i === index ? { ...member, [field]: value } : member)));
   }
+
   function updateLeader(field: keyof Leader, value: string) {
     setLeader((current) => ({ ...current, [field]: value }));
-  }
-
-  // web_dev teams are UG1 only; ai_ml teams share one year from UG2-UG4.
-  // Reset every year when the track changes so the defaults match the rule.
-  function changeTrack(next: "web_dev" | "ai_ml") {
-    const defaultYear: Year = next === "web_dev" ? "UG1" : "UG2";
-    setTrack(next);
-    setLeader((current) => ({ ...current, year: defaultYear }));
-    setMembers((current) => current.map((member) => ({ ...member, year: defaultYear })));
   }
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -42,7 +38,7 @@ export function TeamRegistrationForm({ initialLeaderName, leaderEmail }: { initi
     try {
       const payload = {
         teamName: teamName.trim(),
-        track,
+        institutionName: INSTITUTION,
         leader: {
           ...leader,
           name: leader.name.trim(),
@@ -97,17 +93,19 @@ export function TeamRegistrationForm({ initialLeaderName, leaderEmail }: { initi
           />
         </label>
         <label className="block text-sm font-medium text-slate-800">
-          Track
-          <select
-            className="mt-1.5 block w-full rounded-md border border-slate-300 px-3 py-2"
-            value={track}
-            onChange={(event) => changeTrack(event.target.value as "web_dev" | "ai_ml")}
-          >
-            <option value="web_dev">Web development (UG1)</option>
-            <option value="ai_ml">AI/ML (UG2–UG4)</option>
-          </select>
+          Institution
+          <input
+            aria-label="Institution"
+            className="mt-1.5 block w-full cursor-not-allowed rounded-md border border-slate-300 bg-slate-100 px-3 py-2 text-slate-600"
+            value={INSTITUTION}
+            readOnly
+          />
         </label>
       </div>
+
+      <p className="rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-700">
+        Neural Forge is a team event. Each team must have exactly 4 members: you and 3 teammates.
+      </p>
 
       <fieldset className="grid gap-3 border-t border-slate-200 pt-5 sm:grid-cols-2">
         <legend className="mb-2 text-sm font-semibold text-slate-800">Your details (team leader)</legend>
@@ -121,10 +119,10 @@ export function TeamRegistrationForm({ initialLeaderName, leaderEmail }: { initi
           />
         </label>
         <input aria-label="Your name" className="rounded-md border border-slate-300 px-3 py-2" placeholder="Full name" value={leader.name} onChange={(e) => updateLeader("name", e.target.value)} required />
-        <input aria-label="Phone or WhatsApp number" className="rounded-md border border-slate-300 px-3 py-2" placeholder="Phone / WhatsApp (10-15 digits)" value={leader.phone} onChange={(e) => updateLeader("phone", e.target.value)} required />
+        <input aria-label="WhatsApp number" className="rounded-md border border-slate-300 px-3 py-2" placeholder="WhatsApp number (10-15 digits)" value={leader.phone} onChange={(e) => updateLeader("phone", e.target.value)} required />
         <input aria-label="Your roll number" className="rounded-md border border-slate-300 px-3 py-2" placeholder="Roll number" value={leader.rollNumber} onChange={(e) => updateLeader("rollNumber", e.target.value)} required />
         <select aria-label="Your year" className="rounded-md border border-slate-300 px-3 py-2" value={leader.year} onChange={(e) => updateLeader("year", e.target.value)}>
-          {["UG1", "UG2", "UG3", "UG4"].map((value) => (
+          {YEARS.map((value) => (
             <option key={value}>{value}</option>
           ))}
         </select>
@@ -132,36 +130,26 @@ export function TeamRegistrationForm({ initialLeaderName, leaderEmail }: { initi
       </fieldset>
 
       <fieldset className="space-y-3 border-t border-slate-200 pt-5">
-        <legend className="text-sm font-semibold text-slate-800">Teammates</legend>
+        <legend className="text-sm font-semibold text-slate-800">Teammates (3 required)</legend>
         {members.map((member, index) => (
           <div className="grid gap-3 rounded-md bg-slate-50 p-3 sm:grid-cols-2" key={index}>
-            <input aria-label={`Teammate ${index + 1} name`} className="rounded-md border border-slate-300 px-3 py-2" placeholder="Full name" value={member.name} onChange={(e) => updateMember(index, "name", e.target.value)} required />
-            <input aria-label={`Teammate ${index + 1} email`} className="rounded-md border border-slate-300 px-3 py-2" placeholder="name@iiits.in" type="email" value={member.email} onChange={(e) => updateMember(index, "email", e.target.value)} required />
-            <input aria-label={`Teammate ${index + 1} roll number`} className="rounded-md border border-slate-300 px-3 py-2" placeholder="Roll number" value={member.rollNumber} onChange={(e) => updateMember(index, "rollNumber", e.target.value)} required />
-            <select aria-label={`Teammate ${index + 1} year`} className="rounded-md border border-slate-300 px-3 py-2" value={member.year} onChange={(e) => updateMember(index, "year", e.target.value)}>
-              {["UG1", "UG2", "UG3", "UG4"].map((value) => (
+            <p className="text-sm font-semibold text-slate-800 sm:col-span-2">Member {index + 2}</p>
+            <input aria-label={`Member ${index + 2} name`} className="rounded-md border border-slate-300 px-3 py-2" placeholder="Full name" value={member.name} onChange={(e) => updateMember(index, "name", e.target.value)} required />
+            <input aria-label={`Member ${index + 2} email`} className="rounded-md border border-slate-300 px-3 py-2" placeholder="name@iiits.in" type="email" value={member.email} onChange={(e) => updateMember(index, "email", e.target.value)} required />
+            <input aria-label={`Member ${index + 2} roll number`} className="rounded-md border border-slate-300 px-3 py-2" placeholder="Roll number" value={member.rollNumber} onChange={(e) => updateMember(index, "rollNumber", e.target.value)} required />
+            <select aria-label={`Member ${index + 2} year`} className="rounded-md border border-slate-300 px-3 py-2" value={member.year} onChange={(e) => updateMember(index, "year", e.target.value)}>
+              {YEARS.map((value) => (
                 <option key={value}>{value}</option>
               ))}
             </select>
-            <input aria-label={`Teammate ${index + 1} branch`} className="rounded-md border border-slate-300 px-3 py-2" placeholder="Branch" value={member.branch} onChange={(e) => updateMember(index, "branch", e.target.value)} required />
-            <button className="rounded-md px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50" type="button" disabled={members.length === 1} onClick={() => setMembers((current) => current.filter((_, i) => i !== index))}>
-              Remove
-            </button>
+            <input aria-label={`Member ${index + 2} branch`} className="rounded-md border border-slate-300 px-3 py-2 sm:col-span-2" placeholder="Branch" value={member.branch} onChange={(e) => updateMember(index, "branch", e.target.value)} required />
           </div>
         ))}
-        <button
-          className="rounded-md border border-primary px-3 py-2 text-sm font-semibold text-primary disabled:opacity-50"
-          type="button"
-          disabled={members.length >= 2}
-          onClick={() => setMembers((current) => [...current, emptyMember(leader.year)])}
-        >
-          Add teammate
-        </button>
       </fieldset>
 
       <div className="grid gap-4 border-t border-slate-200 pt-5 sm:grid-cols-2">
         <label className="text-sm font-medium text-slate-800">
-          Previous hackathon experience
+          Previous hackathon experience (optional)
           <select
             className="mt-1.5 block w-full rounded-md border border-slate-300 px-3 py-2"
             value={previousHackathonExperience}

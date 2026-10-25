@@ -10,7 +10,7 @@ export default async function SettingsPage() {
   if (!email) redirect("/");
 
   await connectToDatabase();
-  if ((await getRoleForEmail(normalizeEmail(email))) !== "super_admin") redirect("/");
+  if ((await getRoleForEmail(normalizeEmail(email))) !== "admin") redirect("/");
 
   return (
     <main className="mx-auto min-h-screen max-w-4xl px-4 py-10 sm:px-6">

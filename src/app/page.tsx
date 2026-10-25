@@ -121,19 +121,11 @@ function HeroCta({
     );
   }
 
-  if (role === "super_admin") {
+  if (role === "admin") {
     return (
       <Link href="/admin/settings" className={pillClass}>
         <SparkleIcon className="size-4" />
         Open settings
-      </Link>
-    );
-  }
-  if (role === "admin") {
-    return (
-      <Link href="/admin" className={pillClass}>
-        <SparkleIcon className="size-4" />
-        Open admin panel
       </Link>
     );
   }
@@ -185,7 +177,7 @@ export default async function HomePage() {
   ]);
 
   const resultsPublished = session?.user ? settings.resultsPublished : false;
-  const canViewResults   = role === "admin" || role === "super_admin" || resultsPublished;
+  const canViewResults   = role === "admin" || resultsPublished;
 
   /* Check team membership for CTA logic */
   const { TeamMember } = await import("@/models/TeamMember");

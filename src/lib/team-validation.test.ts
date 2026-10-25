@@ -1,11 +1,5 @@
 import assert from "node:assert/strict";
-import { isRollNumberValidForYear, isTrackYearCombinationValid, normalizeRollNumber, rollNumberPattern } from "./team-validation.ts";
-
-assert.equal(isTrackYearCombinationValid("web_dev", ["UG1", "UG1"]), true);
-assert.equal(isTrackYearCombinationValid("web_dev", ["UG1", "UG2"]), false);
-assert.equal(isTrackYearCombinationValid("ai_ml", ["UG2", "UG2"]), true);
-assert.equal(isTrackYearCombinationValid("ai_ml", ["UG2", "UG3"]), false);
-assert.equal(isTrackYearCombinationValid("ai_ml", ["UG1", "UG1"]), false);
+import { isRollNumberValidForYear, normalizeRollNumber, rollNumberPattern } from "./team-validation.ts";
 
 assert.equal(rollNumberPattern.test(normalizeRollNumber(" s20250010001 ")), true);
 assert.equal(rollNumberPattern.test("S2025001000"), false);

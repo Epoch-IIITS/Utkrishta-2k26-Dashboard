@@ -9,7 +9,7 @@ export default auth((request) => {
   if (!request.auth?.user) {
     return NextResponse.redirect(new URL("/", request.url));
   }
-  if (role !== "admin" && role !== "super_admin") {
+  if (role !== "admin") {
     return NextResponse.redirect(new URL("/", request.url));
   }
   return NextResponse.next();

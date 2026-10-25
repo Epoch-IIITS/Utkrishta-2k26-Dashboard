@@ -52,32 +52,26 @@ function getNavLinks(
 ): NavLink[] {
   const links: NavLink[] = [
     { href: "/", label: "Home" },
-    { href: "/events", label: "Events" },
     { href: "/rules", label: "Rules" },
   ];
+
+  // The leaderboard is public once results are published.
+  if (resultsPublished && role !== "admin") {
+    links.push({ href: "/results", label: "Leaderboard" });
+  }
 
   if (role === "student" || role === "team_leader") {
     if (!hasTeam) {
       links.push({ href: "/register-team", label: "Register Team" });
     }
     links.push({ href: "/team", label: "My Team" });
-    links.push({ href: "/auction", label: "Auction" });
-    if (resultsPublished) {
-      links.push({ href: "/results", label: "Results" });
-    }
   }
 
-  if (role === "judge") {
-    links.push({ href: "/judge", label: "Judging" });
-  }
-
-  if (role === "admin" || role === "super_admin") {
+  if (role === "admin") {
     links.push({ href: "/admin", label: "Admin" });
-    links.push({ href: "/results", label: "Results" });
-    if (role === "super_admin") {
-      links.push({ href: "/admin/settings", label: "Settings" });
-      links.push({ href: "/admin/users", label: "Users" });
-    }
+    links.push({ href: "/results", label: "Leaderboard" });
+    links.push({ href: "/admin/settings", label: "Settings" });
+    links.push({ href: "/admin/users", label: "Admins" });
   }
 
   return links;
@@ -85,9 +79,7 @@ function getNavLinks(
 
 function getRoleLabel(role: AppRole | null): string {
   switch (role) {
-    case "super_admin": return "Super Admin";
     case "admin":       return "Admin";
-    case "judge":       return "Judge";
     case "team_leader": return "Team Leader";
     case "student":     return "Student";
     default:            return "Guest";
@@ -257,14 +249,14 @@ export function TopNav({ role, userName, resultsPublished, hasTeam }: TopNavProp
           >
             <Image
               src="/logo.png"
-              alt="Utkrishta logo"
+              alt="Neural Forge logo"
               width={36}
               height={36}
               priority
               className="mr-2 size-8 md:size-9"
             />
-            <span className="text-primary">Utkrishta</span>
-            <span className="text-sm font-medium text-muted md:text-base"> · PS Bid Wars</span>
+            <span className="text-primary">Neural Forge</span>
+            <span className="text-sm font-medium text-muted md:text-base"> · Utkrishta 2026</span>
           </Link>
 
           {/* Desktop nav links */}
@@ -335,8 +327,8 @@ export function TopNav({ role, userName, resultsPublished, hasTeam }: TopNavProp
                         height={24}
                         className="mr-2 size-6"
                       />
-                      <span className="text-primary">Utkrishta</span>
-                      <span className="text-muted font-medium"> · PS Bid Wars</span>
+                      <span className="text-primary">Neural Forge</span>
+                      <span className="text-muted font-medium"> · Utkrishta 2026</span>
                     </span>
                     <Dialog.Close
                       className={cn(

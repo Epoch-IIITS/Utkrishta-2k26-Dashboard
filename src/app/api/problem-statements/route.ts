@@ -20,7 +20,7 @@ export async function GET() {
     const team = role === "team_leader"
       ? await Team.findOne({ leaderEmail: email }).select({ track: 1 }).lean<{ track: "web_dev" | "ai_ml" }>()
       : membership ? await Team.findById(membership.teamId).select({ track: 1 }).lean<{ track: "web_dev" | "ai_ml" }>() : null;
-    const filter = role === "admin" || role === "super_admin" ? {} : team ? { revealed: true, track: team.track } : { _id: null };
+    const filter = role === "admin" ? {} : team ? { revealed: true, track: team.track } : { _id: null };
     const psList = await ProblemStatement.find(filter).sort({ createdAt: 1 }).lean();
     return NextResponse.json({
       problemStatements: psList.map((ps) => ({

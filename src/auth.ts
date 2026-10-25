@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import authConfig from "@/auth.config";
 import { connectToDatabase } from "@/lib/db";
-import { getRoleForEmail, isAllowedDomain, isExternalJudgeAllowed, normalizeEmail } from "@/lib/roles";
+import { getRoleForEmail, isAllowedDomain, normalizeEmail } from "@/lib/roles";
 import { checkLoginRateLimit } from "@/lib/rate-limit";
 import { User } from "@/models/User";
 
@@ -18,9 +18,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (!email.includes("@")) return false;
       const loginLimit = await checkLoginRateLimit(email);
       if (!loginLimit.allowed) return false;
-      if (!isAllowedDomain(email) && !(await isExternalJudgeAllowed(email))) return false;
-      const role = await getRoleForEmail(email);
-      if (!isAllowedDomain(email) && role !== "judge") return false;
+      if (!isAllowedDomain(email)) return false;
       await connectToDatabase();
       await User.findOneAndUpdate(
         { email },
@@ -34,14 +32,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (typeof token.email !== "string") return null;
 
       const email = normalizeEmail(token.email);
-      if (!isAllowedDomain(email)) {
-        // External accounts are valid only while they remain allowlisted judges.
-        // Returning null clears a previously issued JWT after that access is revoked.
-        if (!(await isExternalJudgeAllowed(email))) return null;
-        if ((await getRoleForEmail(email)) !== "judge") return null;
-        token.role = "judge";
-        return token;
-      }
+      // Only IIIT Sri City accounts are allowed. Returning null clears a previously issued JWT.
+      if (!isAllowedDomain(email)) return null;
 
       token.role = await getRoleForEmail(email);
       return token;

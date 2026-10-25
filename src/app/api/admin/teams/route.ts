@@ -14,7 +14,6 @@ type TeamSummary = {
   githubUrl: string | null;
   linkedinUrl: string | null;
   rulesAcceptedAt?: Date | null;
-  balance: number;
   pointsGiven: boolean;
   assignedPsId: { toString(): string } | null;
   assignmentType: "won" | "allocated" | null;
@@ -58,7 +57,6 @@ export async function GET() {
         githubUrl: team.githubUrl,
         linkedinUrl: team.linkedinUrl,
         rulesAcceptedAt: team.rulesAcceptedAt?.toISOString() ?? null,
-        balance: team.balance,
         pointsGiven: team.pointsGiven,
         assignment: team.assignedPsId
           ? { problemStatementId: String(team.assignedPsId), title: psTitles.get(String(team.assignedPsId)) ?? null, type: team.assignmentType }

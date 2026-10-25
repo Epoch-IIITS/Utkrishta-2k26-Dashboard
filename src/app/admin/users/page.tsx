@@ -8,6 +8,6 @@ export default async function AdminUsersPage() {
   const session = await auth();
   if (!session?.user?.email) redirect("/");
   await connectToDatabase();
-  if ((await getRoleForEmail(normalizeEmail(session.user.email))) !== "super_admin") redirect("/admin");
+  if ((await getRoleForEmail(normalizeEmail(session.user.email))) !== "admin") redirect("/admin");
   return <AdminWorkspace section="users" />;
 }
