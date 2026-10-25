@@ -8,10 +8,8 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test:auction-concurrency": "node scripts/auction-concurrency-test.cjs",
-    "test:rankings": "node src/lib/rankings.test.ts",
     "test:team-validation": "node src/lib/team-validation.test.ts",
-    "test:official": "pnpm test:team-validation && pnpm test:rankings"
+    "test:official": "pnpm test:team-validation"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",

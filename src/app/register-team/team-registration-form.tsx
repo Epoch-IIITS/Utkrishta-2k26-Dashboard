@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 type Year = "UG1" | "UG2" | "UG3" | "UG4";
 type Member = { name: string; email: string; rollNumber: string; year: Year; branch: string };
@@ -13,6 +14,7 @@ const TEAMMATE_COUNT = 3;
 const emptyMember = (): Member => ({ name: "", email: "", rollNumber: "", year: "UG1", branch: "" });
 
 export function TeamRegistrationForm({ initialLeaderName, leaderEmail }: { initialLeaderName: string; leaderEmail: string }) {
+  const router = useRouter();
   const [teamName, setTeamName] = useState("");
   const [leader, setLeader] = useState<Leader>({ name: initialLeaderName, phone: "", rollNumber: "", year: "UG1", branch: "" });
   const [members, setMembers] = useState<Member[]>(() => Array.from({ length: TEAMMATE_COUNT }, emptyMember));
@@ -70,7 +72,7 @@ export function TeamRegistrationForm({ initialLeaderName, leaderEmail }: { initi
 
       setMessage("Your team has been registered successfully. Redirecting…");
       // Full page load so the top nav re-reads hasTeam and hides "Register Team".
-      window.location.href = "/team";
+      router.push("/team");
       return;
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to register the team.");

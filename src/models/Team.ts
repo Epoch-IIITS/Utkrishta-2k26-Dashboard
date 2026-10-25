@@ -5,6 +5,7 @@ const teamSchema = new Schema(
     name: { type: String, required: true, trim: true },
     normalizedName: { type: String, required: true, unique: true, trim: true, lowercase: true },
     leaderEmail: { type: String, required: true, unique: true, trim: true, lowercase: true },
+    institutionName: { type: String, required: true, trim: true },
     previousHackathonExperience: { type: String, enum: ["none", "1-2", "3_or_more"], default: null },
     githubUrl: { type: String, default: null, trim: true },
     linkedinUrl: { type: String, default: null, trim: true },

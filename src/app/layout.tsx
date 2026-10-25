@@ -1,32 +1,19 @@
 import type { Metadata } from "next";
-import { Poppins } from "next/font/google";
 import "./globals.css";
 import { TopNavServer } from "@/components/nav/top-nav-server";
 import { InteractiveBackground } from "@/components/effects/interactive-background";
 
-/*
- * Poppins loaded via next/font/google — self-hosted by Next.js so no
- * external font CDN is needed in the CSP. The CSS variable --font-poppins
- * is injected on <html> and consumed by globals.css:
- *   --font-sans: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
- */
-const poppins = Poppins({
-  subsets:  ["latin"],
-  weight:   ["400", "500", "600", "700"],
-  variable: "--font-poppins",
-  display:  "swap",
-});
 
 export const metadata: Metadata = {
-  title:       "Utkrishta Dashboard",
-  description: "Event dashboard for Utkrishta by Epoch AIML Club.",
+  title:       "Neural Forge · Utkrishta 2026",
+  description: "Neural Forge, the AI/ML hackathon by EPOCH at IIIT Sri City.",
 };
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={poppins.variable}>
+    <html lang="en">
       <body>
         {/*
          * InteractiveBackground: fixed, -z-10, pointer-events-none —

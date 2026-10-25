@@ -1,14 +1,12 @@
 import Link from "next/link";
 
 const cards = [
-  ["Events", "Create and update event announcements.", "/admin/events"],
-  ["Problem statements", "Manage PS details, capacities, and auction status.", "/admin/problem-statements"],
-  ["Teams", "Review teams, award points, update members, and transfer leadership.", "/admin/teams"],
-  ["Allocation", "Assign problem statements to participating teams.", "/admin/allocation"],
-  ["Rounds", "Configure judging and manage round status.", "/admin/rounds"],
+  ["Problem statements", "Create, edit, and reveal problem statements.", "/admin/problem-statements"],
+  ["Teams", "Review teams, update members, and transfer leadership.", "/admin/teams"],
+  ["Scores", "Record in-person evaluation scores.", "/admin/scores"],
   ["Results", "Preview rankings and published results.", "/results"],
-  ["Users", "Grant or revoke admin and judge access.", "/admin/users"],
-  ["Audit log", "Review recorded administrative and event actions.", "/admin/audit-log"],
+  ["Users", "Grant or revoke administrator access.", "/admin/users"],
+  ["Settings", "Control registration, submissions, and result publication.", "/admin/settings"],
 ] as const;
 
 export default function AdminOverviewPage() {

@@ -25,6 +25,7 @@ export type AdminActor = {
  * Admins are the emails in ADMIN_EMAILS plus the admin allowlist.
  */
 export async function requireAdmin(_level: "admin" = "admin"): Promise<AdminActor> {
+  void _level;
   const session = await auth();
   const rawEmail = session?.user?.email;
   if (!rawEmail) throw new AdminAuthError("Authentication required.", 401);

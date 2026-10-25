@@ -4,7 +4,7 @@
  * Server Component: no "use client" needed.
  * Why: this component has no hooks or browser APIs. Value/onChange are
  * forwarded props; they are always supplied by parent Client Components
- * (like AuctionWorkspace), which is valid in the Next.js App Router model.
+ * (like a client workspace), which is valid in the Next.js App Router model.
  */
 import type { InputHTMLAttributes } from "react";
 import { cn } from "@/lib/cn";

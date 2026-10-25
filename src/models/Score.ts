@@ -2,20 +2,16 @@ import { model, models, Schema, type InferSchemaType } from "mongoose";
 
 const scoreSchema = new Schema(
   {
-    roundId: { type: Schema.Types.ObjectId, ref: "Round", required: true },
-    judgeEmail: { type: String, required: true, trim: true, lowercase: true },
-    teamId: { type: Schema.Types.ObjectId, ref: "Team", required: true },
-    points: { type: Number, required: true, min: 0 },
-    criterionScores: {
-      type: [{ criterionName: { type: String, required: true, trim: true }, points: { type: Number, required: true, min: 0 } }],
-      required: true,
-      default: [],
-    },
+    teamId: { type: Schema.Types.ObjectId, ref: "Team", required: true, unique: true },
+    technical: { type: Number, required: true, min: 0, max: 25 },
+    innovation: { type: Number, required: true, min: 0, max: 20 },
+    functionality: { type: Number, required: true, min: 0, max: 20 },
+    impact: { type: Number, required: true, min: 0, max: 20 },
+    presentation: { type: Number, required: true, min: 0, max: 15 },
   },
   { strict: "throw", timestamps: true },
 );
 
-scoreSchema.index({ roundId: 1, judgeEmail: 1, teamId: 1 }, { unique: true });
-
 export type ScoreDocument = InferSchemaType<typeof scoreSchema>;
+if (models.Score && models.Score.schema.path("roundId")) delete models.Score;
 export const Score = models.Score ?? model("Score", scoreSchema);

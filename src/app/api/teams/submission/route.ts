@@ -1,4 +1,3 @@
-import mongoose from "mongoose";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/auth";
@@ -8,7 +7,6 @@ import { checkTeamRegistrationRateLimit } from "@/lib/rate-limit";
 import { getRoleForEmail, normalizeEmail } from "@/lib/roles";
 import { getSettings } from "@/lib/settings";
 import { Team } from "@/models/Team";
-import { User } from "@/models/User";
 
 const httpsUrl = z.string().trim().url().max(300).refine((value) => new URL(value).protocol === "https:");
 const schema = z.object({ liveUrl: httpsUrl, repoUrl: httpsUrl.optional().nullable() }).strict();
@@ -30,18 +28,8 @@ export async function PUT(request: Request) {
     const parsed = schema.safeParse(await request.json());
     if (!parsed.success) return NextResponse.json({ error: "Use valid HTTPS submission URLs up to 300 characters." }, { status: 400 });
     if (!(await getSettings()).submissionsOpen) return NextResponse.json({ error: "Final submissions are not open." }, { status: 403 });
-    const actor = await User.findOne({ email }).select({ _id: 1 }).lean<{ _id: mongoose.Types.ObjectId } | null>();
-    const session = await mongoose.startSession();
-    try {
-      await session.withTransaction(async () => {
-        const team = await Team.findOne({ leaderEmail: email }).session(session);
-        if (!team) throw new SubmissionError("Team not found.", 404);
-        const previousValue = { liveUrl: team.liveUrl, repoUrl: team.repoUrl };
-        team.liveUrl = parsed.data.liveUrl;
-        team.repoUrl = parsed.data.repoUrl ?? null;
-        await team.save({ session });
-      });
-    } finally { await session.endSession(); }
+    const team = await Team.findOneAndUpdate({ leaderEmail: email }, { $set: { liveUrl: parsed.data.liveUrl, repoUrl: parsed.data.repoUrl ?? null } });
+    if (!team) throw new SubmissionError("Team not found.", 404);
     return NextResponse.json({ ok: true });
   } catch (error) {
     if (error instanceof SubmissionError) return NextResponse.json({ error: error.message }, { status: error.status });

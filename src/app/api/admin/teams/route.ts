@@ -9,14 +9,11 @@ type TeamSummary = {
   _id: { toString(): string };
   name: string;
   leaderEmail: string;
-  track: "web_dev" | "ai_ml";
   previousHackathonExperience: "none" | "1-2" | "3_or_more" | null;
   githubUrl: string | null;
   linkedinUrl: string | null;
   rulesAcceptedAt?: Date | null;
-  pointsGiven: boolean;
   assignedPsId: { toString(): string } | null;
-  assignmentType: "won" | "allocated" | null;
   createdAt: Date;
 };
 
@@ -52,14 +49,12 @@ export async function GET() {
         id: String(team._id),
         name: team.name,
         leaderEmail: team.leaderEmail,
-        track: team.track,
         previousHackathonExperience: team.previousHackathonExperience,
         githubUrl: team.githubUrl,
         linkedinUrl: team.linkedinUrl,
         rulesAcceptedAt: team.rulesAcceptedAt?.toISOString() ?? null,
-        pointsGiven: team.pointsGiven,
         assignment: team.assignedPsId
-          ? { problemStatementId: String(team.assignedPsId), title: psTitles.get(String(team.assignedPsId)) ?? null, type: team.assignmentType }
+          ? { problemStatementId: String(team.assignedPsId), title: psTitles.get(String(team.assignedPsId)) ?? null }
           : null,
         members: (membersByTeam.get(String(team._id)) ?? []).map((member) => ({ name: member.name, email: member.email, phone: member.phone, rollNumber: member.rollNumber, year: member.year, branch: member.branch })),
         createdAt: team.createdAt.toISOString(),

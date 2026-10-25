@@ -31,8 +31,8 @@ export async function getRoleForEmail(email: string): Promise<AppRole> {
     Team.exists({ leaderEmail: normalizedEmail }),
   ]);
 
-  // An email that is both an admin and a team leader fails closed instead of getting either role.
-  if (admin && leader) return "student";
+  // Allowlisted administrators always retain their administrative role. Team creation
+  // independently rejects administrators, preventing new conflicting memberships.
   if (admin) return "admin";
   if (leader) return "team_leader";
   return "student";

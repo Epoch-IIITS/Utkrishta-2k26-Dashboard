@@ -6,20 +6,10 @@ export const SETTINGS_SINGLETON_KEY = "global";
 export type SettingsRecord = {
   _id: unknown;
   singletonKey: string;
-  startingPoints: number;
   eventYear: number;
-  defaultTeamsPerPs: number | null;
-  minIncrement: number;
-  minTeamSize: number;
-  maxTeamSize: number;
   registrationOpen: boolean;
-  powerupMultiplier: number;
-  powerupForAllocatedTeams: boolean;
-  allowNonCollegeJudges: boolean;
-  allowSameJudgeAcrossRounds: boolean;
   resultsPublished: boolean;
   submissionsOpen: boolean;
-  redemptionOpen: boolean;
 };
 
 export async function getSettings() {

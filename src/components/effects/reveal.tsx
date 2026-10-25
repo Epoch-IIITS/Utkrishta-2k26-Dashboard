@@ -57,6 +57,7 @@ export function Reveal({
       const b = el.getBoundingClientRect();
       return b.top < window.innerHeight && b.bottom > 0;
     };
+    void isInViewport;
 
     let safetyTimer: number | undefined;
     let mounted = true;

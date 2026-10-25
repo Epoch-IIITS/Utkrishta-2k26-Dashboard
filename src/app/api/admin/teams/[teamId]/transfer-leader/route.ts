@@ -5,7 +5,6 @@ import { connectToDatabase } from "@/lib/db";
 import { AdminAuthError, checkOrigin, isValidObjectId, requireAdmin } from "@/lib/admin-auth";
 import { checkAdminMutationRateLimit } from "@/lib/rate-limit";
 import { normalizeEmail } from "@/lib/roles";
-import { AuditLog } from "@/models/AuditLog";
 import { Team } from "@/models/Team";
 import { TeamMember } from "@/models/TeamMember";
 
@@ -15,11 +14,6 @@ type TeamForTransfer = { _id: mongoose.Types.ObjectId; leaderEmail: string };
 
 function identifier(request: Request, email: string) {
   return `${email}:${request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown"}`;
-}
-
-function maskedEmail(email: string) {
-  const at = email.lastIndexOf("@");
-  return at > 0 ? `${email[0]}***@${email.slice(at + 1)}` : "[redacted email]";
 }
 
 export async function POST(request: Request, { params }: Params) {
@@ -51,14 +45,6 @@ export async function POST(request: Request, { params }: Params) {
           { new: true, session: dbSession },
         ).lean<TeamForTransfer>();
         if (!updated) throw new TransferConflictError();
-        await AuditLog.create([{
-          action: "team.leader_transferred",
-          actorUserId: actor.userId,
-          targetType: "Team",
-          targetId: team._id,
-          previousValue: { leaderEmail: maskedEmail(team.leaderEmail) },
-          newValue: { leaderEmail: maskedEmail(newLeaderEmail) },
-        }], { session: dbSession });
       });
       return NextResponse.json({ leaderEmail: newLeaderEmail });
     } finally {

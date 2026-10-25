@@ -4,9 +4,6 @@ import { z } from "zod";
 import { connectToDatabase } from "@/lib/db";
 import { AdminAuthError, checkOrigin, isValidObjectId, requireAdmin } from "@/lib/admin-auth";
 import { checkAdminMutationRateLimit } from "@/lib/rate-limit";
-import { AuditLog } from "@/models/AuditLog";
-import { Bid } from "@/models/Bid";
-import { Holding } from "@/models/Holding";
 import { Score } from "@/models/Score";
 import { Team } from "@/models/Team";
 import { TeamMember } from "@/models/TeamMember";
@@ -42,14 +39,6 @@ export async function PATCH(request: Request, { params }: Params) {
           { new: true, session: dbSession },
         );
         if (!updated) throw new TeamNotFoundError();
-        await AuditLog.create([{
-          action: "team.updated",
-          actorUserId: actor.userId,
-          targetType: "Team",
-          targetId: team._id,
-          previousValue: { name: team.name },
-          newValue: { name: parsed.data.name },
-        }], { session: dbSession });
       });
     } finally {
       await dbSession.endSession();
@@ -83,22 +72,12 @@ export async function DELETE(request: Request, { params }: Params) {
         const team = await Team.findById(teamId).session(dbSession).lean<{ _id: mongoose.Types.ObjectId; name: string }>();
         if (!team) throw new TeamNotFoundError();
 
-        const [removed, members, bids, holdings, scores] = await Promise.all([
+        const [removed] = await Promise.all([
           Team.findByIdAndDelete(team._id, { session: dbSession }),
           TeamMember.deleteMany({ teamId: team._id }, { session: dbSession }),
-          Bid.deleteMany({ teamId: team._id }, { session: dbSession }),
-          Holding.deleteMany({ teamId: team._id }, { session: dbSession }),
           Score.deleteMany({ teamId: team._id }, { session: dbSession }),
         ]);
         if (!removed) throw new TeamNotFoundError();
-        await AuditLog.create([{
-          action: "team.deleted",
-          actorUserId: actor.userId,
-          targetType: "Team",
-          targetId: team._id,
-          previousValue: { name: team.name },
-          newValue: { removedMembers: members.deletedCount, removedBids: bids.deletedCount, removedHoldings: holdings.deletedCount, removedScores: scores.deletedCount },
-        }], { session: dbSession });
         deleted = true;
       });
       return NextResponse.json({ deleted });

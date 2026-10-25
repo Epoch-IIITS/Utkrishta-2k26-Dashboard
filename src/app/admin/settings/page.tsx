@@ -17,7 +17,7 @@ export default async function SettingsPage() {
       <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">Administration</p>
       <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">Settings</h1>
       <p className="mt-3 max-w-2xl text-slate-600">
-        Update event-wide rules. Changes are checked against existing auction data and recorded in the audit log.
+        Update event-wide registration, submission, and result-publication controls.
       </p>
       <SettingsForm />
     </main>

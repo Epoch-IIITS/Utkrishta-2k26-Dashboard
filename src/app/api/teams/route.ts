@@ -73,6 +73,7 @@ const memberSchema = z.object({ name: personName, email: z.string().trim().email
 const registrationSchema = z
   .object({
     teamName,
+    institutionName: z.literal("IIIT Sri City"),
     leader: z.object({ name: personName, phone, rollNumber, year, branch }).strict(),
     members: z.array(memberSchema).length(TEAM_SIZE - 1),
     rulesAccepted: z.literal(true),
@@ -188,6 +189,7 @@ export async function POST(request: Request) {
                 name: parsed.data.teamName.trim(),
                 normalizedName,
                 leaderEmail,
+                institutionName: parsed.data.institutionName,
                 previousHackathonExperience: parsed.data.previousHackathonExperience ?? null,
                 githubUrl: parsed.data.githubUrl ?? null,
                 linkedinUrl: parsed.data.linkedinUrl ?? null,

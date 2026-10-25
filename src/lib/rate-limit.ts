@@ -62,17 +62,6 @@ export async function checkLoginRateLimit(identifier: string): Promise<RateLimit
   );
 }
 
-// --- Bid: 10 bids / 10 seconds ---
-const bidRef: { current: Ratelimit | null | undefined } = { current: undefined };
-export async function checkBidRateLimit(identifier: string): Promise<RateLimitResult> {
-  return checkLimit(
-    bidRef,
-    () => makeRedisLimiter(Ratelimit.slidingWindow(10, "10 s"), "utkrishta:bid"),
-    identifier,
-    "Bid",
-  );
-}
-
 // --- Score submission: 20 submissions / 60 seconds ---
 const scoreSubmissionRef: { current: Ratelimit | null | undefined } = { current: undefined };
 export async function checkScoreSubmissionRateLimit(identifier: string): Promise<RateLimitResult> {

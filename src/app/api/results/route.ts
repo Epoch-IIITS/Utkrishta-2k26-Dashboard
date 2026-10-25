@@ -72,7 +72,7 @@ export async function GET() {
       .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
 
     // Teams with equal totals share a rank (1, 1, 3, ...).
-    const leaderboard = rows.map((row, index) => {
+    const leaderboard = rows.map((row) => {
       const firstWithSameTotal = rows.findIndex((other) => other.total === row.total);
       return { rank: firstWithSameTotal + 1, ...row };
     });

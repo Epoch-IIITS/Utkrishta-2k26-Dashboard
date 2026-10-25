@@ -1,5 +1,5 @@
 /**
- * Badge — pill-shaped label for status, track, role, etc.
+ * Badge — pill-shaped label for status and role.
  *
  * Server Component: no "use client" — purely presentational.
  * All text colors are WCAG AA on white (tested against the design tokens).

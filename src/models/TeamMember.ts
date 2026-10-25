@@ -7,8 +7,7 @@ const teamMemberSchema = new Schema(
     email: { type: String, required: true, unique: true, trim: true, lowercase: true },
     normalizedEmail: { type: String, required: true, unique: true, trim: true, lowercase: true },
     phone: { type: String, default: null, trim: true },
-    // These values are cleared by the post-event admin anonymization action.
-    rollNumber: { type: String, default: null, trim: true },
+    rollNumber: { type: String, required: true, trim: true },
     normalizedRollNumber: { type: String, required: true, unique: true, trim: true, uppercase: true },
     year: { type: String, required: true, enum: ["UG1", "UG2", "UG3", "UG4"] },
     branch: { type: String, required: true, trim: true },
