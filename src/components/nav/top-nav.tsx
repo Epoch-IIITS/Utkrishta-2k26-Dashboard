@@ -53,6 +53,7 @@ function getNavLinks(
   const links: NavLink[] = [
     { href: "/", label: "Home" },
     { href: "/rules", label: "Rules" },
+    { href: "/#contact", label: "Contact" },
   ];
 
   // The leaderboard is public once results are published.

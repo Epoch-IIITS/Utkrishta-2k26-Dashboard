@@ -12,6 +12,14 @@ export const eventDescription = "A 72-hour AI/ML hackathon by EPOCH at IIIT Sri 
 export const prizePool = "₹12,000";
 // TODO: Set confirmed prize amounts before displaying them.
 export const prizeSplit = { first: null, second: null, third: null } as const;
+export const eventDate: string | null = null; // TODO: add the confirmed event date.
+export const eventVenue: string | null = null; // TODO: add the confirmed venue.
+export const contact = {
+  name: "Piyali Barman",
+  role: "SPOC, EPOCH Executive Committee",
+  email: "piyali.b25@iiits.in",
+  organization: "EPOCH, AI/ML Club, IIIT Sri City",
+} as const;
 export const email: string | null = null; // TODO: add the club email.
 export const locationText: string | null = null; // TODO: add the confirmed location.
 export const websiteUrl = httpsUrl(null); // TODO: add the confirmed club website.

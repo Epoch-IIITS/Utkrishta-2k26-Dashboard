@@ -61,6 +61,31 @@ html { scroll-behavior: smooth; }
   html { scroll-behavior: auto; }
 }
 
+.hero-title,
+.prize-amount {
+  background: linear-gradient(110deg, var(--color-primary), var(--color-accent), var(--color-glow-sky));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.hero-title { text-shadow: 0 0 28px color-mix(in srgb, var(--color-glow-sky) 28%, transparent); }
+
+.hero-particle {
+  position: absolute;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 9999px;
+  background: var(--color-glow-sky);
+  box-shadow: 0 0 14px var(--color-glow-sky);
+  animation: float-dot 6s ease-in-out infinite;
+}
+.hero-particle-delay { animation-delay: -2s; }
+.hero-particle-slow { animation-duration: 8s; animation-delay: -4s; }
+.prize-card::before { content: ""; position: absolute; inset: 12%; border: 1px solid color-mix(in srgb, var(--color-primary) 25%, transparent); border-radius: 1rem; pointer-events: none; animation: prize-ring 4s ease-in-out infinite; }
+@keyframes float-dot { 50% { transform: translateY(-16px) scale(1.2); opacity: .55; } }
+@keyframes prize-ring { 50% { transform: scale(1.05); opacity: .4; } }
+
 .background-static {
   background: radial-gradient(ellipse 80% 50% at 50% -10%, color-mix(in srgb, var(--color-glow-primary) 8%, transparent), transparent 70%);
 }
