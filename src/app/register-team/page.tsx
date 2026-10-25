@@ -8,7 +8,7 @@ import { TeamRegistrationForm } from "./team-registration-form";
 export default async function RegisterTeamPage() {
   const session = await auth();
   const rawEmail = session?.user?.email;
-  if (!rawEmail) redirect("/api/auth/signin?callbackUrl=%2Fregister");;
+  if (!rawEmail) redirect("/api/auth/signin?callbackUrl=%2Fregister");
 
   await connectToDatabase();
   const email = normalizeEmail(rawEmail);
