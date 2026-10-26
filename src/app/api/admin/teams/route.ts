@@ -9,11 +9,14 @@ type TeamSummary = {
   _id: { toString(): string };
   name: string;
   leaderEmail: string;
+  institutionName?: string | null;
   previousHackathonExperience: "none" | "1-2" | "3_or_more" | null;
   githubUrl: string | null;
   linkedinUrl: string | null;
   rulesAcceptedAt?: Date | null;
   assignedPsId: { toString(): string } | null;
+  liveUrl?: string | null;
+  repoUrl?: string | null;
   createdAt: Date;
 };
 
@@ -45,20 +48,39 @@ export async function GET() {
     const psTitles = new Map(problemStatements.map((ps) => [String(ps._id), ps.title]));
 
     return NextResponse.json({
-      teams: teams.map((team) => ({
-        id: String(team._id),
-        name: team.name,
-        leaderEmail: team.leaderEmail,
-        previousHackathonExperience: team.previousHackathonExperience,
-        githubUrl: team.githubUrl,
-        linkedinUrl: team.linkedinUrl,
-        rulesAcceptedAt: team.rulesAcceptedAt?.toISOString() ?? null,
-        assignment: team.assignedPsId
-          ? { problemStatementId: String(team.assignedPsId), title: psTitles.get(String(team.assignedPsId)) ?? null }
-          : null,
-        members: (membersByTeam.get(String(team._id)) ?? []).map((member) => ({ name: member.name, email: member.email, phone: member.phone, rollNumber: member.rollNumber, year: member.year, branch: member.branch })),
-        createdAt: team.createdAt.toISOString(),
-      })),
+      teams: teams.map((team) => {
+        const teamMembers = membersByTeam.get(String(team._id)) ?? [];
+        // The leader is always listed first.
+        const ordered = [
+          ...teamMembers.filter((member) => member.email === team.leaderEmail),
+          ...teamMembers.filter((member) => member.email !== team.leaderEmail),
+        ];
+        return {
+          id: String(team._id),
+          name: team.name,
+          leaderEmail: team.leaderEmail,
+          // Teams registered before this field existed were all IIIT Sri City teams.
+          institutionName: team.institutionName ?? "IIIT Sri City",
+          previousHackathonExperience: team.previousHackathonExperience,
+          githubUrl: team.githubUrl,
+          linkedinUrl: team.linkedinUrl,
+          rulesAcceptedAt: team.rulesAcceptedAt?.toISOString() ?? null,
+          liveUrl: team.liveUrl ?? null,
+          repoUrl: team.repoUrl ?? null,
+          assignment: team.assignedPsId
+            ? { problemStatementId: String(team.assignedPsId), title: psTitles.get(String(team.assignedPsId)) ?? null }
+            : null,
+          members: ordered.map((member) => ({
+            name: member.name,
+            email: member.email,
+            phone: member.phone,
+            rollNumber: member.rollNumber,
+            year: member.year,
+            branch: member.branch,
+          })),
+          createdAt: team.createdAt.toISOString(),
+        };
+      }),
     });
   } catch (error) {
     if (error instanceof AdminAuthError) return NextResponse.json({ error: error.message }, { status: error.status });

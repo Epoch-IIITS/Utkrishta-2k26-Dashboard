@@ -16,10 +16,12 @@ type TeamItem = {
   id: string;
   name: string;
   leaderEmail: string;
+  institutionName: string | null;
   previousHackathonExperience: string | null;
   githubUrl: string | null;
   linkedinUrl: string | null;
   rulesAcceptedAt: string | null;
+  createdAt: string | null;
   liveUrl?: string | null;
   repoUrl?: string | null;
   assignment: { problemStatementId: string; title: string | null } | null;
@@ -40,11 +42,23 @@ type ScoreTeam = { id: string; name: string; liveUrl: string | null; repoUrl: st
 
 type RoleList = { admins: Array<{ email: string; addedAt: string }> };
 
+const EXPERIENCE_LABELS: Record<string, string> = {
+  none: "None",
+  "1-2": "1–2 hackathons",
+  "3_or_more": "3 or more hackathons",
+};
+
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, { ...init, headers: { ...(init?.body ? { "Content-Type": "application/json" } : {}), ...init?.headers } });
   const data = (await response.json()) as T & { error?: string };
   if (!response.ok) throw new Error(data.error ?? "The request could not be completed.");
   return data;
+}
+
+function formatDate(value: string | null | undefined) {
+  if (!value) return "—";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "—" : date.toLocaleString();
 }
 
 function PageHeading({ title, description }: { title: string; description: string }) {
@@ -68,6 +82,24 @@ function Message({ error, message }: { error: string | null; message: string | n
 
 function Card({ children }: { children: ReactNode }) {
   return <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">{children}</section>;
+}
+
+function Detail({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div>
+      <dt className="text-slate-500">{label}</dt>
+      <dd className="mt-0.5 font-medium text-slate-900">{children}</dd>
+    </div>
+  );
+}
+
+function LinkValue({ href }: { href: string | null | undefined }) {
+  if (!href) return <span className="font-normal text-slate-500">Not provided</span>;
+  return (
+    <a className="break-all text-primary underline" href={href} target="_blank" rel="noreferrer noopener">
+      {href}
+    </a>
+  );
 }
 
 function useData<T>(loader: () => Promise<T>) {
@@ -223,12 +255,161 @@ function ProblemStatementsWorkspace() {
   );
 }
 
+type Year = "UG1" | "UG2" | "UG3" | "UG4";
+type Person = { name: string; email: string; rollNumber: string; year: Year; branch: string };
+type LeaderInput = Person & { phone: string };
+
+const YEARS: Year[] = ["UG1", "UG2", "UG3", "UG4"];
+const TEAM_SIZE = 4;
+const inputClass = "rounded-md border border-slate-300 px-3 py-2";
+
+const emptyPerson = (): Person => ({ name: "", email: "", rollNumber: "", year: "UG1", branch: "" });
+const emptyLeader = (): LeaderInput => ({ ...emptyPerson(), phone: "" });
+const initialTeammates = (): Person[] => Array.from({ length: TEAM_SIZE - 1 }, emptyPerson);
+
+function CreateTeamForm({ onCreated }: { onCreated: () => Promise<void> | void }) {
+  const [teamName, setTeamName] = useState("");
+  const [leader, setLeader] = useState<LeaderInput>(emptyLeader);
+  const [teammates, setTeammates] = useState<Person[]>(initialTeammates);
+  const [rulesConfirmed, setRulesConfirmed] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
+  function updateLeader(field: keyof LeaderInput, value: string) {
+    setLeader((current) => ({ ...current, [field]: value }));
+  }
+
+  function updateTeammate(index: number, field: keyof Person, value: string) {
+    setTeammates((current) => current.map((member, i) => (i === index ? { ...member, [field]: value } : member)));
+  }
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setMessage(null);
+
+    const totalMembers = teammates.length + 1;
+    const sizeException = totalMembers !== TEAM_SIZE;
+    if (sizeException && !window.confirm(`This team will have ${totalMembers} members instead of ${TEAM_SIZE}. Create it anyway?`)) return;
+
+    setBusy(true);
+    try {
+      const leaderEmail = leader.email.trim();
+      const phone = leader.phone.replace(/[\s()-]/g, "");
+      const payload = {
+        teamName: teamName.trim(),
+        leader: {
+          name: leader.name.trim(),
+          email: leaderEmail,
+          ...(phone ? { phone } : {}),
+          rollNumber: leader.rollNumber.trim(),
+          year: leader.year,
+          branch: leader.branch.trim(),
+        },
+        members: teammates.map((member) => ({
+          name: member.name.trim(),
+          email: member.email.trim(),
+          rollNumber: member.rollNumber.trim(),
+          year: member.year,
+          branch: member.branch.trim(),
+        })),
+        rulesConfirmed,
+        ...(sizeException ? { confirmSizeException: true } : {}),
+      };
+
+      await requestJson("/api/admin/teams/create", { method: "POST", body: JSON.stringify(payload) });
+
+      setMessage(`Team created. ${leaderEmail} can now sign in to see it.`);
+      setTeamName("");
+      setLeader(emptyLeader());
+      setTeammates(initialTeammates());
+      setRulesConfirmed(false);
+      await onCreated();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to create the team.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form className="mt-4 space-y-5" onSubmit={submit}>
+      <Message error={error} message={message} />
+
+      <label className="block text-sm font-medium text-slate-800">
+        Team name
+        <input className={`mt-1.5 block w-full ${inputClass}`} value={teamName} onChange={(e) => setTeamName(e.target.value)} required minLength={3} maxLength={40} />
+      </label>
+
+      <fieldset className="grid gap-3 border-t border-slate-200 pt-4 sm:grid-cols-2">
+        <legend className="mb-2 text-sm font-semibold text-slate-800">Team leader</legend>
+        <input aria-label="Leader name" className={inputClass} placeholder="Full name" value={leader.name} onChange={(e) => updateLeader("name", e.target.value)} required />
+        <input aria-label="Leader email" className={inputClass} placeholder="name@iiits.in" type="email" value={leader.email} onChange={(e) => updateLeader("email", e.target.value)} required />
+        <input aria-label="Leader roll number" className={inputClass} placeholder="Roll number" value={leader.rollNumber} onChange={(e) => updateLeader("rollNumber", e.target.value)} required />
+        <select aria-label="Leader year" className={inputClass} value={leader.year} onChange={(e) => updateLeader("year", e.target.value)}>
+          {YEARS.map((value) => (
+            <option key={value}>{value}</option>
+          ))}
+        </select>
+        <input aria-label="Leader branch" className={inputClass} placeholder="Branch" value={leader.branch} onChange={(e) => updateLeader("branch", e.target.value)} required />
+        <input aria-label="Leader WhatsApp number" className={inputClass} placeholder="WhatsApp number (optional)" value={leader.phone} onChange={(e) => updateLeader("phone", e.target.value)} />
+      </fieldset>
+
+      <fieldset className="space-y-3 border-t border-slate-200 pt-4">
+        <legend className="text-sm font-semibold text-slate-800">Teammates ({teammates.length})</legend>
+        {teammates.map((member, index) => (
+          <div className="grid gap-3 rounded-md bg-slate-50 p-3 sm:grid-cols-2" key={index}>
+            <p className="text-sm font-semibold text-slate-800 sm:col-span-2">Member {index + 2}</p>
+            <input aria-label={`Member ${index + 2} name`} className={inputClass} placeholder="Full name" value={member.name} onChange={(e) => updateTeammate(index, "name", e.target.value)} required />
+            <input aria-label={`Member ${index + 2} email`} className={inputClass} placeholder="name@iiits.in" type="email" value={member.email} onChange={(e) => updateTeammate(index, "email", e.target.value)} required />
+            <input aria-label={`Member ${index + 2} roll number`} className={inputClass} placeholder="Roll number" value={member.rollNumber} onChange={(e) => updateTeammate(index, "rollNumber", e.target.value)} required />
+            <select aria-label={`Member ${index + 2} year`} className={inputClass} value={member.year} onChange={(e) => updateTeammate(index, "year", e.target.value)}>
+              {YEARS.map((value) => (
+                <option key={value}>{value}</option>
+              ))}
+            </select>
+            <input aria-label={`Member ${index + 2} branch`} className={inputClass} placeholder="Branch" value={member.branch} onChange={(e) => updateTeammate(index, "branch", e.target.value)} required />
+            <button
+              type="button"
+              disabled={teammates.length <= 1}
+              onClick={() => setTeammates((current) => current.filter((_, i) => i !== index))}
+              className="rounded-md px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
+            >
+              Remove
+            </button>
+          </div>
+        ))}
+        <button
+          type="button"
+          disabled={teammates.length >= TEAM_SIZE}
+          onClick={() => setTeammates((current) => [...current, emptyPerson()])}
+          className="rounded-md border border-primary px-3 py-2 text-sm font-semibold text-primary disabled:opacity-50"
+        >
+          Add teammate
+        </button>
+        <p className="text-xs text-slate-600">A team normally has {TEAM_SIZE} members (leader plus {TEAM_SIZE - 1}). Any other size asks you to confirm.</p>
+      </fieldset>
+
+      <label className="flex gap-2 text-sm text-slate-800">
+        <input type="checkbox" checked={rulesConfirmed} onChange={(e) => setRulesConfirmed(e.target.checked)} required />
+        The team has agreed to the event rules.
+      </label>
+
+      <button disabled={busy} className="rounded-md bg-primary px-4 py-2 font-semibold text-white disabled:bg-slate-400" type="submit">
+        {busy ? "Creating…" : "Create team"}
+      </button>
+    </form>
+  );
+}
+
 function TeamsWorkspace() {
   const load = useCallback(async () => (await requestJson<{ teams: TeamItem[] }>("/api/admin/teams")).teams, []);
   const { data: teams, error, loading, reload } = useData(load);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
 
   async function run(teamId: string, label: string, url: string, init: RequestInit): Promise<boolean> {
     setBusyId(teamId);
@@ -274,78 +455,160 @@ function TeamsWorkspace() {
     await run(teamId, "Member removed.", `/api/admin/teams/${teamId}/members`, { method: "PATCH", body: JSON.stringify({ action: "remove", memberEmail: email }) });
   }
 
+  const needle = query.trim().toLowerCase();
+  const allTeams = teams ?? [];
+  const visibleTeams = allTeams.filter(
+    (team) =>
+      !needle ||
+      [team.name, team.leaderEmail, ...team.members.flatMap((member) => [member.name, member.email, member.rollNumber])].some((value) => (value ?? "").toLowerCase().includes(needle)),
+  );
+
   return (
     <main className="mx-auto max-w-6xl space-y-7 px-4 py-10 sm:px-6">
-      <PageHeading title="Teams" description="Review registered teams, manage members, and transfer leadership." />
+      <PageHeading title="Teams" description="Create teams for students, review every registration detail, manage members, and transfer leadership." />
       <Message error={actionError} message={notice} />
+      <Card>
+        <details>
+          <summary className="cursor-pointer text-lg font-semibold text-slate-950">Create a team for students</summary>
+          <p className="mt-2 text-sm text-slate-600">
+            Use this when a team cannot register itself. It works even when registration is closed. The leader signs in with their college email to see the team.
+          </p>
+          <CreateTeamForm onCreated={reload} />
+        </details>
+      </Card>
       {loading ? (
         <p>Loading teams…</p>
       ) : error ? (
         <p className="rounded-md bg-red-50 p-4 text-red-800" role="alert">{error}</p>
       ) : (
-        <div className="grid gap-4">
-          {(teams ?? []).map((team) => (
-            <Card key={team.id}>
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <h2 className="text-lg font-semibold text-slate-950">{team.name}</h2>
-                  <p className="mt-1 text-sm text-slate-600">Leader: {team.leaderEmail}</p>
-                  <p className="mt-1 text-sm text-slate-600">Problem statement: {team.assignment?.title ?? "Not selected"}</p>
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search by team, name, email or roll number"
+              aria-label="Search teams"
+              className="w-full max-w-md rounded-md border border-slate-300 px-3 py-2"
+            />
+            <p className="text-sm text-slate-600">
+              Showing {visibleTeams.length} of {allTeams.length} teams
+            </p>
+          </div>
+          <div className="grid gap-4">
+            {visibleTeams.map((team) => (
+              <Card key={team.id}>
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <h2 className="text-lg font-semibold text-slate-950">{team.name}</h2>
+                    <p className="mt-1 text-sm text-slate-600">Leader login: {team.leaderEmail}</p>
+                  </div>
+                  <button
+                    disabled={Boolean(busyId)}
+                    onClick={() => {
+                      if (window.confirm(`Delete ${team.name}?`)) void run(team.id, "Team deleted.", `/api/admin/teams/${team.id}`, { method: "DELETE" });
+                    }}
+                    className="rounded-md border border-red-300 px-3 py-2 text-sm text-red-700"
+                  >
+                    Delete team
+                  </button>
                 </div>
-                <button
-                  disabled={Boolean(busyId)}
-                  onClick={() => {
-                    if (window.confirm(`Delete ${team.name}?`)) void run(team.id, "Team deleted.", `/api/admin/teams/${team.id}`, { method: "DELETE" });
-                  }}
-                  className="rounded-md border border-red-300 px-3 py-2 text-sm text-red-700"
-                >
-                  Delete team
-                </button>
-              </div>
-              <div className="mt-4 grid gap-4 border-t border-slate-200 pt-4 md:grid-cols-2">
-                <div>
+
+                <dl className="mt-4 grid gap-3 border-t border-slate-200 pt-4 text-sm sm:grid-cols-2 lg:grid-cols-3">
+                  <Detail label="Institution">{team.institutionName ?? "—"}</Detail>
+                  <Detail label="Registered on">{formatDate(team.createdAt)}</Detail>
+                  <Detail label="Rules accepted">{formatDate(team.rulesAcceptedAt)}</Detail>
+                  <Detail label="Previous hackathons">{team.previousHackathonExperience ? (EXPERIENCE_LABELS[team.previousHackathonExperience] ?? team.previousHackathonExperience) : "Not provided"}</Detail>
+                  <Detail label="Problem statement">{team.assignment?.title ?? "Not selected"}</Detail>
+                  <Detail label="GitHub">
+                    <LinkValue href={team.githubUrl} />
+                  </Detail>
+                  <Detail label="LinkedIn">
+                    <LinkValue href={team.linkedinUrl} />
+                  </Detail>
+                  <Detail label="Live app">
+                    <LinkValue href={team.liveUrl} />
+                  </Detail>
+                  <Detail label="Repository">
+                    <LinkValue href={team.repoUrl} />
+                  </Detail>
+                </dl>
+
+                <div className="mt-4 border-t border-slate-200 pt-4">
                   <h3 className="font-semibold">Members ({team.members.length} of 4)</h3>
-                  <ul className="mt-2 space-y-2 text-sm">
-                    {team.members.map((member) => (
-                      <li className="flex flex-wrap items-center justify-between gap-2" key={member.email}>
-                        <span>{member.name} · {member.email}</span>
-                        {member.email !== team.leaderEmail && (
-                          <button disabled={Boolean(busyId)} className="text-red-700 underline" onClick={() => void removeMember(team.id, member.email)}>
-                            Remove
-                          </button>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                  <form className="mt-3 grid gap-2 sm:grid-cols-2" onSubmit={(event) => void addMember(event, team.id)}>
+                  <div className="overflow-x-auto">
+                    <table className="mt-2 w-full min-w-[44rem] text-left text-sm">
+                      <thead className="text-slate-500">
+                        <tr>
+                          <th className="py-1 pr-3 font-medium">Name</th>
+                          <th className="py-1 pr-3 font-medium">Email (login)</th>
+                          <th className="py-1 pr-3 font-medium">Roll number</th>
+                          <th className="py-1 pr-3 font-medium">Year</th>
+                          <th className="py-1 pr-3 font-medium">Branch</th>
+                          <th className="py-1 pr-3 font-medium">WhatsApp</th>
+                          <th className="py-1 font-medium"></th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {team.members.map((member) => {
+                          const isLeader = member.email === team.leaderEmail;
+                          return (
+                            <tr key={member.email}>
+                              <td className="py-2 pr-3">
+                                {member.name}
+                                {isLeader && <span className="ml-2 rounded bg-primary/10 px-1.5 py-0.5 text-xs font-semibold text-primary">Leader</span>}
+                              </td>
+                              <td className="py-2 pr-3 break-all">{member.email}</td>
+                              <td className="py-2 pr-3">{member.rollNumber}</td>
+                              <td className="py-2 pr-3">{member.year}</td>
+                              <td className="py-2 pr-3">{member.branch}</td>
+                              <td className="py-2 pr-3">{member.phone ?? "—"}</td>
+                              <td className="py-2 text-right">
+                                {!isLeader && (
+                                  <button disabled={Boolean(busyId)} className="text-red-700 underline" onClick={() => void removeMember(team.id, member.email)}>
+                                    Remove
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="mt-4 grid gap-4 border-t border-slate-200 pt-4 md:grid-cols-2">
+                  <form className="grid gap-2 sm:grid-cols-2" onSubmit={(event) => void addMember(event, team.id)}>
+                    <h3 className="font-semibold sm:col-span-2">Add a member</h3>
                     <input required name="name" placeholder="Member name" className="rounded-md border border-slate-300 px-3 py-2" />
                     <input required name="email" type="email" placeholder="Member email" className="rounded-md border border-slate-300 px-3 py-2" />
                     <button disabled={Boolean(busyId)} className="w-fit rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold">Add member</button>
                   </form>
+                  <form
+                    className="space-y-2"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      const form = new FormData(event.currentTarget);
+                      const newLeaderEmail = String(form.get("email") ?? "");
+                      void run(team.id, "Leadership transferred.", `/api/admin/teams/${team.id}/transfer-leader`, { method: "POST", body: JSON.stringify({ newLeaderEmail }) });
+                    }}
+                  >
+                    <h3 className="font-semibold">Transfer leadership</h3>
+                    <p className="text-sm text-slate-600">Choose an existing team member.</p>
+                    <select required name="email" className="w-full rounded-md border border-slate-300 px-3 py-2">
+                      <option value="">Select member</option>
+                      {team.members.filter((member) => member.email !== team.leaderEmail).map((member) => (
+                        <option key={member.email} value={member.email}>{member.name}</option>
+                      ))}
+                    </select>
+                    <button disabled={Boolean(busyId)} className="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold">Transfer leader</button>
+                  </form>
                 </div>
-                <form
-                  className="space-y-2"
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    const form = new FormData(event.currentTarget);
-                    const newLeaderEmail = String(form.get("email") ?? "");
-                    void run(team.id, "Leadership transferred.", `/api/admin/teams/${team.id}/transfer-leader`, { method: "POST", body: JSON.stringify({ newLeaderEmail }) });
-                  }}
-                >
-                  <h3 className="font-semibold">Transfer leadership</h3>
-                  <p className="text-sm text-slate-600">Choose an existing team member.</p>
-                  <select required name="email" className="w-full rounded-md border border-slate-300 px-3 py-2">
-                    <option value="">Select member</option>
-                    {team.members.filter((member) => member.email !== team.leaderEmail).map((member) => (
-                      <option key={member.email} value={member.email}>{member.name}</option>
-                    ))}
-                  </select>
-                  <button disabled={Boolean(busyId)} className="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold">Transfer leader</button>
-                </form>
-              </div>
-            </Card>
-          ))}
-        </div>
+              </Card>
+            ))}
+          </div>
+        </>
       )}
     </main>
   );
