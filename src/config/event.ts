@@ -1,3 +1,7 @@
+// Team size is the leader plus teammates. Change it here only; every other file imports it.
+export const MIN_TEAM_SIZE = 3;
+export const MAX_TEAM_SIZE = 4;
+
 export type TimelineDay = {
   day: "Day 1" | "Day 2" | "Day 3";
   title: string;

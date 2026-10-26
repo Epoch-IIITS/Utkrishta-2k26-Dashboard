@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { MAX_TEAM_SIZE, MIN_TEAM_SIZE } from "@/config/event";
 
 type Section = "problem-statements" | "teams" | "scores" | "users";
 
@@ -260,12 +261,11 @@ type Person = { name: string; email: string; rollNumber: string; year: Year; bra
 type LeaderInput = Person & { phone: string };
 
 const YEARS: Year[] = ["UG1", "UG2", "UG3", "UG4"];
-const TEAM_SIZE = 4;
 const inputClass = "rounded-md border border-slate-300 px-3 py-2";
 
 const emptyPerson = (): Person => ({ name: "", email: "", rollNumber: "", year: "UG1", branch: "" });
 const emptyLeader = (): LeaderInput => ({ ...emptyPerson(), phone: "" });
-const initialTeammates = (): Person[] => Array.from({ length: TEAM_SIZE - 1 }, emptyPerson);
+const initialTeammates = (): Person[] => Array.from({ length: MIN_TEAM_SIZE - 1 }, emptyPerson);
 
 function CreateTeamForm({ onCreated }: { onCreated: () => Promise<void> | void }) {
   const [teamName, setTeamName] = useState("");
@@ -290,8 +290,8 @@ function CreateTeamForm({ onCreated }: { onCreated: () => Promise<void> | void }
     setMessage(null);
 
     const totalMembers = teammates.length + 1;
-    const sizeException = totalMembers !== TEAM_SIZE;
-    if (sizeException && !window.confirm(`This team will have ${totalMembers} members instead of ${TEAM_SIZE}. Create it anyway?`)) return;
+    const sizeException = totalMembers < MIN_TEAM_SIZE || totalMembers > MAX_TEAM_SIZE;
+    if (sizeException && !window.confirm(`This team will have ${totalMembers} members instead of ${MIN_TEAM_SIZE}–${MAX_TEAM_SIZE}. Create it anyway?`)) return;
 
     setBusy(true);
     try {
@@ -382,13 +382,15 @@ function CreateTeamForm({ onCreated }: { onCreated: () => Promise<void> | void }
         ))}
         <button
           type="button"
-          disabled={teammates.length >= TEAM_SIZE}
+          disabled={teammates.length >= MAX_TEAM_SIZE}
           onClick={() => setTeammates((current) => [...current, emptyPerson()])}
           className="rounded-md border border-primary px-3 py-2 text-sm font-semibold text-primary disabled:opacity-50"
         >
           Add teammate
         </button>
-        <p className="text-xs text-slate-600">A team normally has {TEAM_SIZE} members (leader plus {TEAM_SIZE - 1}). Any other size asks you to confirm.</p>
+        <p className="text-xs text-slate-600">
+          A team normally has {MIN_TEAM_SIZE} or {MAX_TEAM_SIZE} members (leader plus {MIN_TEAM_SIZE - 1} or {MAX_TEAM_SIZE - 1}). Any other size asks you to confirm.
+        </p>
       </fieldset>
 
       <label className="flex gap-2 text-sm text-slate-800">
@@ -535,7 +537,9 @@ function TeamsWorkspace() {
                 </dl>
 
                 <div className="mt-4 border-t border-slate-200 pt-4">
-                  <h3 className="font-semibold">Members ({team.members.length} of 4)</h3>
+                  <h3 className="font-semibold">
+                    Members ({team.members.length}, normal size {MIN_TEAM_SIZE}–{MAX_TEAM_SIZE})
+                  </h3>
                   <div className="overflow-x-auto">
                     <table className="mt-2 w-full min-w-[44rem] text-left text-sm">
                       <thead className="text-slate-500">

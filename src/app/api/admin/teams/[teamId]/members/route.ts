@@ -10,8 +10,7 @@ import { AdminAllowlist } from "@/models/AdminAllowlist";
 import { Setting } from "@/models/Setting";
 import { Team } from "@/models/Team";
 import { TeamMember } from "@/models/TeamMember";
-
-const TEAM_SIZE = 4;
+import { MAX_TEAM_SIZE, MIN_TEAM_SIZE } from "@/config/event";
 
 const personName = z.string().trim().min(2).max(60).regex(/^[A-Za-z .'-]+$/);
 const rollNumber = z.string().trim().transform(normalizeRollNumber).refine((value) => rollNumberPattern.test(value));
@@ -93,8 +92,9 @@ export async function PATCH(request: Request, { params }: Params) {
         if (!settings) throw new SettingsNotFoundError();
 
         // A Neural Forge team has exactly 4 members. Any other size needs the admin's confirmation.
+                // A Neural Forge team has 3 or 4 members. Any other size needs the admin's confirmation.
         const resultingSize = members.length + (data.action === "add" ? 1 : -1);
-        const sizeException = resultingSize !== TEAM_SIZE;
+        const sizeException = resultingSize < MIN_TEAM_SIZE || resultingSize > MAX_TEAM_SIZE;
         if (sizeException && !data.confirmSizeException) throw new SizeConfirmationError();
 
         if (data.action === "add") {

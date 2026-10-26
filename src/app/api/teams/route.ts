@@ -11,6 +11,7 @@ import { AdminAllowlist } from "@/models/AdminAllowlist";
 import { ProblemStatement } from "@/models/ProblemStatement";
 import { Team } from "@/models/Team";
 import { TeamMember } from "@/models/TeamMember";
+import { MAX_TEAM_SIZE, MIN_TEAM_SIZE } from "@/config/event";
 
 const TEAM_SIZE = 4;
 
@@ -106,7 +107,10 @@ const registrationSchema = z
     teamName,
     institutionName: z.literal("IIIT Sri City", { message: "must be IIIT Sri City." }),
     leader: z.object({ name: personName, phone, rollNumber, year, branch }).strict(),
-    members: z.array(memberSchema).length(TEAM_SIZE - 1, `must be exactly ${TEAM_SIZE - 1}.`),
+    members: z
+      .array(memberSchema)
+      .min(MIN_TEAM_SIZE - 1, `must be between ${MIN_TEAM_SIZE - 1} and ${MAX_TEAM_SIZE - 1}.`)
+      .max(MAX_TEAM_SIZE - 1, `must be between ${MIN_TEAM_SIZE - 1} and ${MAX_TEAM_SIZE - 1}.`),
     rulesAccepted: z.literal(true, { message: "must be accepted before you can register." }),
     previousHackathonExperience: z.enum(["none", "1-2", "3_or_more"], { message: "must be one of the listed options." }).optional(),
     githubUrl: httpsUrl.optional(),
